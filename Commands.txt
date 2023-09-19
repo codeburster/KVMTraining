@@ -1,0 +1,2 @@
+qemu-img info /VMs/kvmdik1.raw
+qemu-img info /VMs/snapshot-file-name.qcow2
