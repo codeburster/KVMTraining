@@ -1,3 +1,7 @@
+## download centos7 Minimal
+## run below command
+wget http://centos.mirror.net.in/centos/7.9.2009/isos/x86_64/CentOS-7-x86_64-Minimal-2009.iso
+
 ##  We will need 2 VMs to perform some tasks ##
 ## In the below given steps we will create 2 VMs (demovm1 and demovm2)
 
