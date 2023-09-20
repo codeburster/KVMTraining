@@ -1,0 +1,107 @@
+# Practice Networking in qemu/kvm
+
+=> PRACTICE #1
+
+# Enable host forwarding in usermode networking
+# traffic from hostPort is forwarded to VMPort (Assume you are running httpd web service in VM)
+
+Step 1 - Start your demovm1 with below command *observe the -netdev option used for network backend to enable host forwarding from 8080 to 80 
+ -> qemu-system-x86_64 -netdev user,id=mynet,hostfwd=tcp::8080-:80 -device e1000,netdev=mynet -readconfig /VMs/demovm1.vm
+ 
+Step 2 - You should see the qemu console window. wait for Login prompt after boot
+ -> login with your username and password you provided during installation.
+
+
+** run below commands in demovm1 **
+ 
+Step 1 - sudo yum install httpd -y
+
+Step 2 - sudo systemctl enable --now httpd
+
+Step 3 - sudo firewall-cmd --add-service=http
+
+** Now Open web browser on your host machine and Type URL localhost:8080
+** Observe you can access " Apache Test Page " from your VM
+
+
+
+
+=> PRACTICE #2
+
+# Configure bridged networking for better network performance and isolated network.
+# We will use this later for Live Migration
+
+** On Your Host Machine **
+Step 1 - sudo apt-get install bridge-utils -y
+
+Step 2 - Create Linux Bridge on Host
+ -> sudo ip link add demobr type bridge
+ 
+Step 3 - verify if bridge  device is created|
+ -> ip a	(you should see demobr in the output, if not ask trainer)
+  
+Step 4 - Enable spannig tree protocol on bridge to any bridge loops
+ -> brctl stp demobr on
+ 
+Step 5 - See bridge info (you should there are no interfaces attached to it)
+ -> sudo brctl show demobr0
+ 
+Step 6 - Create 2 Tap device - 1 for both VMs (its like a virtual cable to connect two network devices)
+ -> sudo ip tuntap add mode tap tap0
+ -> sudo ip tuntap add mode tap tap1
+ 
+Step 7 - Verify if tap device "tap0" & "tap1" is created
+ -> ip a	(in ouput you should see tap0 & tap1 device, if not ask trainer)
+ 
+Step 7 - Connect one end of tap device (tap0 & tap1)  to Bridge (demobr). you created in previous steps
+ -> sudo ip link set tap0 master demobr
+ -> sudo ip link set tap1 master demobr
+ 
+Step 8 - Verify if tap0 is attached to bridge interface
+ -> sudo brctl show demobr	(you should see tap0 under "interfaces" column, if not ask trainer)
+ 
+Step 9 - Bridge does not have IP and hence the subnet is not defined, Lets assign subnet to it
+ -> sudo ip addr add 192.168.120.1/24 dev demobr
+
+Step 10 - Bring the Bridge device up
+ -> sudo ip list set demobr up
+
+Step 11 - Check the device demobr0, if it has the correct IP
+ -> ip a
+ 
+
+
+** Test if above bridge config works **
+* Run the demovm1 with network device attached to other end of the tap0 device <virtual cable> *
+
+Step 1 - Run your demovm1
+qemu-system-x86_64 -nographic -vnc IP_ADDRESS_OF_HOST_MACHINE::0 -monitor telnet::45454,server,nowait -netdev tap,id=brnet1,ifname=tap0 -device rtl8139,netdev=brnet1 -readconfig /VMs/demovm1.vm -writeconfig /VMs/demovm1.vm
+
+Step 2 - Run your demovm2
+qemu-system-x86_64 -nographic -vnc IP_ADDRESS_OF_HOST_MACHINE:1 -monitor telnet::45455,server,nowait -netdev tap,id=brnet1,ifname=tap1 -device rtl8139,netdev=brnet1 -readconfig /VMs/demovm2.vm -writeconfig /VMs/demovm2.vm
+
+
+Step 3 - Access demovm1 (on host)
+sudo apt-get install vinagre -y
+
+Step 4 - Run vinagre
+Goto Applications on top-left corner, click on "run program" >> Type vinagre >> click vinagre >> you should vinagre vnc client window
+
+Step 5 - Click on connect on vinagre window >> protocol = vnc | host = IP_ADDRESS_OF_HOST_MACHINE:0 | uncheck full screen box | check scaling | uncheck keep aspect ratio | click connect | you should see demovm1 console window
+
+Step 6 - Repeat Step-4 and Step 5 for demovm2 also - Note for demovm2 in step 5 replace "host" = IP_ADDRESS_OF_HOST_MACHINE:1		(intead of 0 use 1)
+
+
+** Two more steps to check connectivity **
+on both VMs configure IPs
+
+on demovm1 run : 
+	sudo nmcli connect add con-name demonet ifname DEVICE-NAME autoconnect yes type ethernet ipv4.method manual ipv4.addresses "192.168.120.10/24" ipv4.gateway "192.168.120.1"
+	sudo nmcli connection up demonet
+
+on demovm2 run :
+	sudo nmcli connect add con-name demonet ifname DEVICE-NAME autoconnect yes type ethernet ipv4.method manual ipv4.addresses "192.168.120.11/24" ipv4.gateway "192.168.120.1"
+	sudo nmcli connection up demonet
+
+
+# use ping to check connectivity from each machine

@@ -1,0 +1,68 @@
+##  We will need 2 VMs to perform some tasks ##
+## In the below given steps we will create 2 VMs (demovm1 and demovm2)
+
+
+## Prepare directory for VMs ##
+sudo mkdir /VMs
+sudo chown kvmuser:kvmuser /VMs
+sudo chmod 775 /VMs
+
+
+## For demovm1 ##
+Step 1 - Create a disk for new VM ( 5BG and qcow2 format )
+ ->  qemu-img create -f qcow2 /VMs/vm1disk1.qcow2 5G
+ 
+Step 2 - Create fresh VM using qemu-system-x86_64 and name it "demovm1"
+ ->  qemu-system-x86_64 -name demovm1 -M q35 -m 2048 -smp 2 -drive file=/VMs/vm1disk1.qcow2,if=virtio -drive file=/home/kvmuser/Downloads/CentOS-7-x86_64-Minimal-2009.iso,media=cdrom -boot d -vga cirrus
+ 
+NOTE - You should see the qemu console window "Perform the regular OS installation with all default settings."
+	After installation is complete "Close the VM console window"
+
+## For demovm2 ##
+
+Step 1- For this VM make the copy of vm1disk1.qcow2 image file from above and name it vm2disk1.qcow2
+ -> cp /VMs/vm1disk1.qcow2 /VMs/vm2disk1.qcow2
+
+
+
+## Now, create a VM config file so that you can easily run VMs (demovm1 and demovm2) whenever needed
+
+## For demovm1 ##
+
+=> qemu-system-x86_64 -name demovm1 -M q35 -m 2048 -smp 2 -drive file=/VMs/vm1disk1.qcow2,if=virtio -boot d -vga cirrus -writeconfig /VMs/demovm1.vm
+
+## Close the qemu console window to return to terminal
+
+
+## For demovm2 ##
+
+=> qemu-system-x86_64 -name demovm2 -M q35 -m 2048 -smp 2 -drive file=/VMs/vm2disk1.qcow2,if=virtio -boot d -vga cirrus -writeconfig /VMs/demovm2.vm
+
+
+# Take 2-3 Mins to look at qemu console window ( we use this later for Migration in KVM ) use below steps
+
+=> Your demovm2 should be running from previous step. If not, then start with qemu-system-x86_64 -readconfig /VMs/demovm2.vm
+
+=> On your qemu console window -> click view -> click on check box "Show Tabs" in drop-down menu
+
+=> You should 4 tabs now under view options -> click "compat_monitor0" (This is you qemu monitor console)
+
+=> Now you should see (qemu) prompt, here you can type commands to look at demovm2 device information
+
+Type below commands at (qemu) prompt to observe
+
+=> info     (a list of available options will be displayed)
+
+=> info memory_size_summary        (displays allocated memory in Bytes)
+
+=> info block 			(lists attached storage devices)
+
+=> info network			(lists networks to which your network device is connected to, look at line with #net -> type=user means its usermode networking which is default)
+
+## to close the console
+==> quit
+
+
+
+
+

@@ -1,2 +1,6 @@
 qemu-img info /VMs/kvmdik1.raw
 qemu-img info /VMs/snapshot-file-name.qcow2
+qemu-system-x86_64 -name testvm -M q35 -m 2048 -smp 2 -drive file=/VMs/disk1-snap1,if=virtio -vga cirrus -boot c
+qemu-img snapshot -l /VMs/testdisk1.qcow2
+virsh define /VMs/demovm.xml 
+virsh list --all 
